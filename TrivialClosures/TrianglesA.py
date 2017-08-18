@@ -40,7 +40,7 @@ def DataTriangle(alist,Tri,signat,pol):
 
 
 
-def DataQuadrangle(alist,Quad,pol,method=0,signat=[1,1,1,1]):
+def DataQuadrangle(alist,Quad,pol,method=0, debias=0, signat=[1,1,1,1]):
 
     condP = (alist['polarization']==pol)
     condB1 = (alist['baseline']==Quad[0])
@@ -53,7 +53,9 @@ def DataQuadrangle(alist,Quad,pol,method=0,signat=[1,1,1,1]):
     tlist = alist_Quad.groupby('datetime').filter(lambda x: len(x) > 3)
     tlist.loc[:,'sigma'] = tlist.loc[:,'amp']/(tlist.loc[:,'snr'])
 
-    method = 0
+    #if debiasing amplitudes
+        quadAmp.loc[:,'amp'] = quadAmp.loc[:,'amp']*np.sqrt(1.- debias*2./quadAmp.loc[:,'snr']**2 )
+        
     #####################################################################
     #form quadAmplitudes on 5s and average quadAmplitudes over whole scan
     #####################################################################
@@ -64,6 +66,7 @@ def DataQuadrangle(alist,Quad,pol,method=0,signat=[1,1,1,1]):
 
         #aggregating to get quadProducts on 5s segments 
         tlist.loc[:,'sigma'] = 1./tlist.loc[:,'snr']**2#put snr in place of sigma to sum for 4product
+
         quadAmp = tlist.groupby(('expt_no','source','scan_id','datetime')).agg({'amp': lambda x: np.prod(x), 
                                 'gmst': 'min', 'sigma' : lambda x: np.sqrt(np.sum(x)) })
         quadAmp.loc[:,'sigma'] = quadAmp.loc[:,'sigma']*quadAmp.loc[:,'amp']
@@ -71,11 +74,11 @@ def DataQuadrangle(alist,Quad,pol,method=0,signat=[1,1,1,1]):
         quadAmp = quadAmp.groupby(('expt_no','source','scan_id')).agg({'amp': np.average,'gmst' :'min','sigma': lambda x: np.sqrt(np.sum(x**2))/len(x)})
         quadAmp.loc[:,'snr'] = quadAmp.loc[:,'amp']/quadAmp.loc[:,'sigma']
 
-    elif method == 1:
+    
     #####################################################################
     #calculate visibilities over whole scan, collapse into quadAmplitude
     #####################################################################
-
+    elif method == 1:
         #aggregation to get visibilities over scan
         quadAmp = tlist.groupby(('expt_no','source','scan_id','baseline')).agg({'amp': lambda x: np.average(x), 
                                 'gmst': 'min','sigma': lambda x: np.sqrt(np.sum(x**2))/len(x)})
@@ -91,11 +94,12 @@ def DataQuadrangle(alist,Quad,pol,method=0,signat=[1,1,1,1]):
         quadAmp.loc[:,'sigma'] = quadAmp.loc[:,'sigma']*quadAmp.loc[:,'amp']
         quadAmp.loc[:,'snr'] = quadAmp.loc[:,'amp']/quadAmp.loc[:,'sigma']
 
-    elif method == 2:
+    
     #####################################################################
     #coherent averaging with phase information
     #####################################################################
     #conjugation because we have data for YX not XY
+    elif method == 2:
         for cou in range(4):
             tlist.loc[(tlist.loc[:,'baseline']==Quad[cou]),'total_phas'] *= signat[cou]*np.pi/180.   
 
@@ -115,6 +119,26 @@ def DataQuadrangle(alist,Quad,pol,method=0,signat=[1,1,1,1]):
 
         quadAmp.loc[:,'amp'] = np.abs(quadAmp.loc[:,'quadProd'])
         quadAmp.loc[:,'snr'] = quadAmp.loc[:,'amp']/quadAmp.loc[:,'sigma']
+
+
+    #####################################################################
+    #use log amplitudes !!WORK IN PROGRESS!!
+    #####################################################################
+    elif method==3:
+        quadAmp.loc[:,'logamp'] = np.log(quadAmp.loc[:,'amp'])
+        #approximated formula for std of log(X)
+        quadAmp.loc[:,'sigma'] = quadAmp.loc[:,'sigma']/(quadAmp.loc[:,'amp']) 
+
+        for cou in range(2,4):
+        #negative sign for denominator amplitudes
+            tlist.loc[(tlist.loc[:,'baseline']==Quad[cou]),'logamp'] *= -1.
+
+        #aggregating to get quadProducts on 5s segments 
+        quadAmp = tlist.groupby(('expt_no','source','scan_id','datetime')).agg({'logamp': lambda x: np.sum(x), 
+                                'gmst': 'min', 'sigma' : lambda x: np.sqrt(np.sum(x**2)) })
+
+        quadAmp = quadAmp.groupby(('expt_no','source','scan_id')).agg({'logamp': np.average,'gmst' :'min','sigma': lambda x: np.sqrt(np.sum(x**2))/len(x)})
+        quadAmp.loc[:,'snr'] = quadAmp.loc[:,'logamp']/quadAmp.loc[:,'sigma']
 
     return quadAmp
 
