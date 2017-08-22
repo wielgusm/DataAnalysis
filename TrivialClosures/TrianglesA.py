@@ -3,6 +3,20 @@ import matplotlib.pyplot as plt
 
 hrs = [0,24.,48.]
 
+
+def DataBaseline(alist,basename,polar):
+    condB = (alist['baseline']==basename)
+    condP = (alist['polarization']==polar)
+    alistB = alist.loc[condB&condP,['expt_no','scan_id','source','datetime','baseline','total_phas','amp','snr','gmst']]
+    alistB.loc[:,'sigma'] = (alistB.loc[:,'amp']/(alistB.loc[:,'snr']))
+    alistB.loc[:,'snrstd'] = (alistB.loc[:,'snr'])
+    alistB.loc[:,'ampstd'] = (alistB.loc[:,'amp'])
+    alistB.loc[:,'phasestd'] = (alistB.loc[:,'total_phas'])
+    alistB = alistB.groupby(('source','expt_no','scan_id')).agg({'total_phas': lambda x: np.average(x),
+        'amp': lambda x: np.average(x), 'sigma': lambda x: np.sqrt(np.sum(x**2))/len(x), 'snr': 'mean','snrstd': 'std',
+        'gmst': 'min', 'ampstd': 'std', 'phasestd': 'std'})
+    return alistB
+
 def DataTriangle(alist,Tri,signat,pol):
     condP = (alist['polarization']==pol)
     condB1 = (alist['baseline']==Tri[0])
@@ -54,7 +68,7 @@ def DataQuadrangle(alist,Quad,pol,method=0, debias=0, signat=[1,1,1,1]):
     tlist.loc[:,'sigma'] = tlist.loc[:,'amp']/(tlist.loc[:,'snr'])
 
     #if debiasing amplitudes
-        quadAmp.loc[:,'amp'] = quadAmp.loc[:,'amp']*np.sqrt(1.- debias*2./quadAmp.loc[:,'snr']**2 )
+    quadAmp.loc[:,'amp'] = quadAmp.loc[:,'amp']*np.sqrt(1.- debias*2./quadAmp.loc[:,'snr']**2 )
         
     #####################################################################
     #form quadAmplitudes on 5s and average quadAmplitudes over whole scan
@@ -141,6 +155,16 @@ def DataQuadrangle(alist,Quad,pol,method=0, debias=0, signat=[1,1,1,1]):
         quadAmp.loc[:,'snr'] = quadAmp.loc[:,'logamp']/quadAmp.loc[:,'sigma']
 
     return quadAmp
+
+def Baseline(alist,basename,source):
+    condB = (alist['baseline']==basename)
+    alistB = alist.loc[condB,['expt_no','scan_id','source','datetime','baseline','total_phas','polarization','amp','snr','gmst']]
+    alistB.loc[:,'sigma'] = (alistB.loc[:,'amp']/(alistB.loc[:,'snr']))
+    
+    snr_listB = tlist.groupby(('expt_no','source','scan_id','datetime','polarization')).agg({'total_phas': lambda x: np.average(x),
+        'amp': lambda x: np.average(x), 'sigma': lambda x: np.sqrt(np.sum(x**2))/len(x),'gmst': 'min'})
+   
+    #aggregate for source on baseline
 
 
 
@@ -272,6 +296,62 @@ def plotQuadranglePolar(alist,Quadrangle,pol,MaxErr=2.,method=0,Signature = [1,1
     plt.show()
     PrintSummaryQuad(alist)
     
+
+def plotBaseline(alist,basename,pol,DataLabel='snr',ErrorLabel='snrstd'):
+
+    #DataLabel='amp'
+    #ErrorLabel = 'sigma'
+    alist = DataBaseline(alist,basename,pol)
+    days = [3597,3600,3601]; source = '3C279'
+    #hrs = [0,24.,48.] #to add to time
+    t3C,cp3C,yerr3C = GetPlotData(alist,source,DataLabel,ErrorLabel,days,hrs)
+    source = 'OJ287'
+    tOJ,cpOJ,yerrOJ = GetPlotData(alist,source,DataLabel,ErrorLabel,days,hrs)
+    source = 'J1924-2914'
+    tJ1,cpJ1,yerrJ1 = GetPlotData(alist,source,DataLabel,ErrorLabel,days,hrs)
+    source = '1055+018'
+    t10,cp10,yerr10 = GetPlotData(alist,source,DataLabel,ErrorLabel,days,hrs)
+    source = '1749+096'
+    t17,cp17,yerr17 = GetPlotData(alist,source,DataLabel,ErrorLabel,days,hrs)
+    source = '1921-293'
+    t19,cp19,yerr19 = GetPlotData(alist,source,DataLabel,ErrorLabel,days,hrs)
+    source = 'CYGX-3'
+    tCY,cpCY,yerrCY = GetPlotData(alist,source,DataLabel,ErrorLabel,days,hrs)
+    source = 'J1733-1304'
+    tJ17,cpJ17,yerrJ17 = GetPlotData(alist,source,DataLabel,ErrorLabel,days,hrs)
+    source = 'CENA'
+    tCE,cpCE,yerrCE = GetPlotData(alist,source,DataLabel,ErrorLabel,days,hrs)
+
+    #plot
+    #-----------------------------------------------
+    plt.figure(figsize=(15,6))
+    if len(t3C)> 0:
+        plt.errorbar(t3C,cp3C,xerr=0, yerr = 1.*yerr3C, fmt='bo', label = '3C279')
+    if len(tOJ)> 0:
+        plt.errorbar(tOJ,cpOJ,xerr=0, yerr = 1.*yerrOJ, fmt='ro', label = 'OJ287')
+    if len(tJ1)> 0:
+        plt.errorbar(tJ1,cpJ1,xerr=0, yerr = 1.*yerrJ1, fmt='go', label = 'J1924-2914')
+    if len(t10)> 0:
+        plt.errorbar(t10,cp10,xerr=0, yerr = 1.*yerr10, fmt='mo', label = '1055+018')
+    if len(t17)> 0:
+        plt.errorbar(t17,cp17,xerr=0, yerr = 1.*yerr17, fmt='ko', label = '1921-293')
+    if len(t19)> 0:
+        plt.errorbar(t19,cp19,xerr=0, yerr = 1.*yerr19, fmt='yo', label = 'CYGX-3')
+    if len(tJ17)> 0:
+        plt.errorbar(tJ17,cpJ17,xerr=0, yerr = 1.*yerrJ17, fmt='sb', label = 'J1733-1304')
+    if len(tCE)> 0:
+        plt.errorbar(tCE,cpCE,xerr=0, yerr = 1.*yerrCE, fmt='co', label = 'CENA')
+
+    plt.xlabel('time',fontsize=15)
+    #plt.xticks(x, my_xticks)
+    plt.ylabel(DataLabel+' in 5s',fontsize=15)
+    #plt.axhline(y=1.,linewidth=2, color='k')
+    plt.axvline(x=24.,linewidth=1,color='k',linestyle='--')
+    plt.axvline(x=48.,linewidth=1,color='k',linestyle='--')
+    plt.xlim((np.amin(np.concatenate((t3C,tOJ,tJ1,t10,t17,t19,tJ17,tCE)))-0.5,np.amax(np.concatenate((t3C,tOJ,tJ1,t10,t17,t19,tJ17,tCE)))+0.5,))
+    plt.title(str(basename)+', '+pol, fontsize=15)
+    plt.legend()
+    plt.show()
 
     
 
