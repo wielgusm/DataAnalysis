@@ -7,14 +7,23 @@ hrs = [0,24.,48.]
 def DataBaseline(alist,basename,polar):
     condB = (alist['baseline']==basename)
     condP = (alist['polarization']==polar)
-    alistB = alist.loc[condB&condP,['expt_no','scan_id','source','datetime','baseline','total_phas','amp','snr','gmst']]
+    if 't_coh' in alist.keys():
+        alistB = alist.loc[condB&condP,['expt_no','scan_id','source','datetime','baseline','total_phas','amp','snr','gmst','t_coh','t_coh_bias']]
+    else:
+        alistB = alist.loc[condB&condP,['expt_no','scan_id','source','datetime','baseline','total_phas','amp','snr','gmst']]
     alistB.loc[:,'sigma'] = (alistB.loc[:,'amp']/(alistB.loc[:,'snr']))
     alistB.loc[:,'snrstd'] = (alistB.loc[:,'snr'])
     alistB.loc[:,'ampstd'] = (alistB.loc[:,'amp'])
     alistB.loc[:,'phasestd'] = (alistB.loc[:,'total_phas'])
-    alistB = alistB.groupby(('source','expt_no','scan_id')).agg({'total_phas': lambda x: np.average(x),
+    if 't_coh' in alist.keys():
+        alistB = alistB.groupby(('source','expt_no','scan_id')).agg({'total_phas': lambda x: np.average(x),
         'amp': lambda x: np.average(x), 'sigma': lambda x: np.sqrt(np.sum(x**2))/len(x), 'snr': 'mean','snrstd': 'std',
-        'gmst': 'min', 'ampstd': 'std', 'phasestd': 'std'})
+                        'gmst': 'min', 'ampstd': 'std', 'phasestd': 'std', 't_coh': 'mean','t_coh_bias': 'mean'})
+    else:
+        alistB = alistB.groupby(('source','expt_no','scan_id')).agg({'total_phas': lambda x: np.average(x),
+        'amp': lambda x: np.average(x), 'sigma': lambda x: np.sqrt(np.sum(x**2))/len(x), 'snr': 'mean','snrstd': 'std',
+             'gmst': 'min', 'ampstd': 'std', 'phasestd': 'std'})
+        
     return alistB
 
 def DataTriangle(alist,Tri,signat,pol):
