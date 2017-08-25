@@ -544,7 +544,7 @@ def GetCoherenceTime(Vis212):
     return tcoh1, tcoh2
 
 
-def PlotCoherenceTimescale(V212):
+def PlotCoherenceTimescale(V212, logscaley = False):
     s = SSTDD(V212)/np.sqrt(V212.shape[1])
     V = AvArr(V212,V212.shape[1],1)
     vecT = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,25,30,35,40,45,50,60,70,80,100]; vecF = [V.shape[1]]; 
@@ -556,6 +556,8 @@ def PlotCoherenceTimescale(V212):
     plt.errorbar(nV/V.shape[1], DBAV, xerr=0.0, yerr=1*s*np.sqrt(2)/np.sqrt(vecT),fmt='-bo',label='debiased')
     plt.errorbar(nV/V.shape[1], BAV, xerr=0.0, yerr=1*s*np.sqrt(2)/np.sqrt(vecT),fmt='-ro',label='non-debiased')
     plt.xscale('log'); plt.grid();
+    if Logscaley==True:
+        plt.yscale('log')
     plt.ylabel('Debiased amp.',fontsize=15)
     plt.xlabel('coherent intgr. time $t_{av}$ [s]',fontsize=15)
     plt.axhline(y=0.9*np.amax(DBAV),color='b',linestyle='--', label='90 percent of max debiased')
