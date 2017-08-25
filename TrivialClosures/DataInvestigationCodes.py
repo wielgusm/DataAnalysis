@@ -85,6 +85,20 @@ def AvArr(NArr,step,Nax):
     ANArr = np.delete(ANArr,range(1),axis = Nax)
     return ANArr
 
+def AvArrVar(NArr,step,Nax):
+    NdirAv = int(np.floor(NArr.shape[Nax]/step)) #How many buckets
+    ANArr = np.empty(np.shape(np.take(NArr,range(1), axis=Nax)))
+    STDArr = np.empty(np.shape(np.take(NArr,range(1), axis=Nax)))
+    for cou in range(NdirAv): 
+        LocalV = np.take(NArr,range(step*cou,step*cou+step), axis=Nax)   
+        MeanV = np.mean(LocalV,axis=Nax,keepdims=True)
+        VarV = np.var(LocalV,axis=Nax,keepdims=True)
+        ANArr = np.concatenate((ANArr,MeanV), axis=Nax)
+        STDArr = np.concatenate((STDArr,VarV), axis=Nax)
+    ANArr = np.delete(ANArr,range(1),axis = Nax)
+    STDArr = np.sqrt(np.delete(STDArr,range(1),axis = Nax))/np.sqrt(2.*step)
+    #this is sigma of the result mean, one axis sigma
+    return ANArr, STDArr
 
 
 def AvArr2(NArr,step1,Nax1, step2, Nax2):
@@ -177,11 +191,12 @@ def ChangesAveraging(Vis, vecT, vecB, what='SNR'):
             SNRV[couT,couB] = SNR(VisAv.flatten())
             DBAV[couT,couB] = DebAmp(VisAv.flatten())
             #SSVDV[couT,couB] = np.sqrt(2)*SSTD(VisAv.flatten())/np.std(VisAv.flatten())
-            SSVDV[couT,couB] = SSTD(VisAv.flatten())
+            SSVDV[couT,couB] = SSTDD(VisAv.flatten())
             #SSVDV[couT,couB] = np.std(VisAv.flatten())
             #stdCP[couT,couB] = np.std(np.angle(Bisp.flatten()))
             nV[couT,couB] = vecT[couT]*vecB[couB]
-            BAV[couT,couB] = np.sqrt(np.mean(np.abs(VisAv.flatten())**2))
+            #BAV[couT,couB] = np.sqrt(np.mean(np.abs(VisAv.flatten())**2))
+            BAV[couT,couB] = np.mean(np.abs(VisAv.flatten()))
     return SNRV, DBAV, SSVDV, nV,BAV
 
     
@@ -227,12 +242,21 @@ def MomentsReal(vect):
 
 def SSTD(sample,axis=0):
     #SAMPLE STD
-    D_sample = np.diff(sample,axis=0)
-    SSTD = np.std(np.hstack(((D_sample.real).flatten(),(D_sample.imag).flatten())))/np.sqrt(2)
+    #D_sample = np.diff(sample,axis=0)
+    #SSTD = np.std(np.hstack(((D_sample.real).flatten(),(D_sample.imag).flatten())))/np.sqrt(2)
+    SSTD = np.std(sample)/np.sqrt(2)
     return SSTD
+
+def SSTDD(sample,axis=0):
+    #SAMPLE STD
+    D_sample = np.diff(sample,axis=0)
+    SSTDD = np.std(np.hstack(((D_sample.real).flatten(),(D_sample.imag).flatten())))/np.sqrt(2)
+
+    return SSTDD
 
 def DebAmp(X):
     DbA = np.sqrt(np.mean(np.abs(X.flatten())**2) - 2.*SSTD(X)**2)
+    #DbA = np.sqrt(np.mean(np.abs(X.flatten())**2) - np.std(X)**2)
     return DbA
 
 
