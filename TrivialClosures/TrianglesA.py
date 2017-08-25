@@ -77,7 +77,7 @@ def DataQuadrangle(alist,Quad,pol,method=0, debias=0, signat=[1,1,1,1]):
     tlist.loc[:,'sigma'] = tlist.loc[:,'amp']/(tlist.loc[:,'snr'])
 
     #if debiasing amplitudes
-    tlist.loc[:,'amp'] = tlist.loc[:,'amp']*np.sqrt(1.- debias*2./tlist.loc[:,'snr']**2 )
+    if debias != 0:
         
     #####################################################################
     #form quadAmplitudes on 5s and average quadAmplitudes over whole scan
