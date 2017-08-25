@@ -353,7 +353,7 @@ def plotBaseline(alist,basename,pol,DataLabel='snr',ErrorLabel='snrstd',logscale
 
     plt.xlabel('time',fontsize=15)
     #plt.xticks(x, my_xticks)
-    if Logscaley==True:
+    if logscaley==True:
         plt.yscale('log')
     plt.ylabel(DataLabel+' in 5s',fontsize=15)
     #plt.axhline(y=1.,linewidth=2, color='k')
