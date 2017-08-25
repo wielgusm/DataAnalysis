@@ -556,7 +556,7 @@ def PlotCoherenceTimescale(V212, logscaley = False):
     plt.errorbar(nV/V.shape[1], DBAV, xerr=0.0, yerr=1*s*np.sqrt(2)/np.sqrt(vecT),fmt='-bo',label='debiased')
     plt.errorbar(nV/V.shape[1], BAV, xerr=0.0, yerr=1*s*np.sqrt(2)/np.sqrt(vecT),fmt='-ro',label='non-debiased')
     plt.xscale('log'); plt.grid();
-    if Logscaley==True:
+    if logscaley==True:
         plt.yscale('log')
     plt.ylabel('Debiased amp.',fontsize=15)
     plt.xlabel('coherent intgr. time $t_{av}$ [s]',fontsize=15)
