@@ -356,6 +356,8 @@ def plotBaseline(alist,basename,pol,DataLabel='snr',ErrorLabel='snrstd',logscale
     if logscaley==True:
         plt.yscale('log')
     plt.ylabel(DataLabel+' in 5s',fontsize=15)
+    if (DataLabel=='t_coh_bias')|(DataLabel=='t_coh'):
+        plt.ylabel(DataLabel,fontsize=15)
     #plt.axhline(y=1.,linewidth=2, color='k')
     plt.axvline(x=24.,linewidth=1,color='k',linestyle='--')
     plt.axvline(x=48.,linewidth=1,color='k',linestyle='--')
