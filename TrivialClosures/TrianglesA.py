@@ -148,6 +148,7 @@ def DataQuadrangle(alist,Quad,pol,method=0, debias=0, signat=[1,1,1,1]):
     #use log amplitudes !!WORK IN PROGRESS!!
     #####################################################################
     elif method==3:
+        quadAmp = tlist
         quadAmp.loc[:,'logamp'] = np.log(quadAmp.loc[:,'amp'])
         #approximated formula for std of log(X)
         quadAmp.loc[:,'sigma'] = quadAmp.loc[:,'sigma']/(quadAmp.loc[:,'amp']) 
@@ -157,7 +158,7 @@ def DataQuadrangle(alist,Quad,pol,method=0, debias=0, signat=[1,1,1,1]):
             tlist.loc[(tlist.loc[:,'baseline']==Quad[cou]),'logamp'] *= -1.
 
         #aggregating to get quadProducts on 5s segments 
-        quadAmp = tlist.groupby(('expt_no','source','scan_id','datetime')).agg({'logamp': lambda x: np.sum(x), 
+        quadAmp = quadAmp.groupby(('expt_no','source','scan_id','datetime')).agg({'logamp': lambda x: np.sum(x), 
                                 'gmst': 'min', 'sigma' : lambda x: np.sqrt(np.sum(x**2)) })
 
         quadAmp = quadAmp.groupby(('expt_no','source','scan_id')).agg({'logamp': np.average,'gmst' :'min','sigma': lambda x: np.sqrt(np.sum(x**2))/len(x)})
