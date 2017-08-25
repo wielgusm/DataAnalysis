@@ -527,6 +527,8 @@ def GetCoherenceTime(Vis212):
         tcoh1 = tcoh[0]
     except IndexError:
         tcoh1 = np.nan
+    if all(tcoh>0):
+        tcoh1=100.
     
     #coherence time from debiased amplitude
     test2 = DBAV-0.9*np.amax(DBAV)
@@ -536,6 +538,8 @@ def GetCoherenceTime(Vis212):
         tcoh2 = float(vecT[indT2]) + float(vecT[indT2+1]-vecT[indT2])*test2[indT2]/(-test2[indT2+1]+test2[indT2]) -1.
     except IndexError:
         tcoh2 = np.nan
+    if all(tcoh2>0):
+        tcoh2=100.
         
     return tcoh1, tcoh2
 
@@ -543,7 +547,7 @@ def GetCoherenceTime(Vis212):
 def PlotCoherenceTimescale(V212):
     s = SSTDD(V212)/np.sqrt(V212.shape[1])
     V = AvArr(V212,V212.shape[1],1)
-    vecT = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,25,30,35,40,50,60,80,100]; vecF = [V.shape[1]]; 
+    vecT = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,25,30,35,40,45,50,60,70,80,100]; vecF = [V.shape[1]]; 
     SNRV, DBAV, STDV, nV, BAV = ChangesAveraging(V,vecT,vecF)
     DBAV = np.sqrt(BAV.flatten()**2 - 2.*s**2/(vecT))
     
@@ -568,6 +572,8 @@ def PlotCoherenceTimescale(V212):
         tcoh1 = tcoh[0]
     except IndexError:
         tcoh1 = np.nan
+    if all(tcoh>0):
+        tcoh1=100.
     
     test2 = DBAV-0.9*np.amax(DBAV)
     tcoh2 = np.where((test2[:-1] * test2[1:] <= 0)& (test2[:-1] > 0))
@@ -576,6 +582,8 @@ def PlotCoherenceTimescale(V212):
         tcoh2 = float(vecT[indT2]) + float(vecT[indT2+1]-vecT[indT2])*test2[indT2]/(-test2[indT2+1]+test2[indT2]) -1.
     except IndexError:
         tcoh2 = np.nan
+    if all(tcoh2>0):
+        tcoh2=100.
     print 'Charasteristic std for coherent averaging over 1s, all channels: ', s
     print 'Coherence time from non-debiased amplitudes [s]: ', tcoh1
     print 'Coherence time from debiased amplitudes [s]: ', tcoh2
