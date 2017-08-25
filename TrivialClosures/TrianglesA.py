@@ -412,3 +412,5 @@ def PrintSummaryTri(alist):
     print 'Scans with sigma <', sigmaLim,'deg, consistent with CP==0 within 3 sigma: ', n3
     print 'Scans inconsistent with CP==0 within 3 sigma, but error smaller than 1.5 deg: ', n4
     print 'Scans consistent with CP==0 within 3 sigma, but sigma > ', sigmaLim,'deg: ', n5
+
+

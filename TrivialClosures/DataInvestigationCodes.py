@@ -1,10 +1,12 @@
 import numpy as np
-
+import pandas as pd
 import sys
 sys.path.append('/home/maciek/eat')
 from eat.hops import util as hu
 from eat.io import hops, util
 import scipy.stats as stats
+import matplotlib.pyplot as plt
+import scipy.signal as scs
 
 def ImportBaselineData120(nameF):
     #Loads baseline data from file
@@ -229,7 +231,7 @@ def PrintInfoSample(BispA):
 def SNR(vect):
     #vect = vect.flatten()
     #SNR = np.sqrt(np.mean(vect.real)**2 + np.mean(vect.imag)**2)/np.sqrt(np.std(vect.real)**2 + np.std(vect.imag)**2)
-    SNR=DebAmp(vect)/SSTD(vect)
+    SNR=DebAmp(vect)/SSTDD(vect)
     return SNR
 
 def MomentsReal(vect):
@@ -255,7 +257,7 @@ def SSTDD(sample,axis=0):
     return SSTDD
 
 def DebAmp(X):
-    DbA = np.sqrt(np.mean(np.abs(X.flatten())**2) - 2.*SSTD(X)**2)
+    DbA = np.sqrt(np.mean(np.abs(X.flatten())**2) - 2.*SSTDD(X)**2)
     #DbA = np.sqrt(np.mean(np.abs(X.flatten())**2) - np.std(X)**2)
     return DbA
 
@@ -505,3 +507,116 @@ def PlotCP0_diagnosticsZJS(Vis1,Vis2,Vis3,dfChan,BandShift = 2,Tav=5,ObsPath='09
     print('Average over single channels in symmetric band, correction of the non closing delay:')
     print 'Mean CP [deg]:', (180/np.pi)*np.angle(np.mean(Bsp1chc.flatten())) 
     print('Error of the mean CP [deg]:', (180/np.pi)*np.std(np.angle(Bsp1chc.flatten()))/np.sqrt(len(Bsp1chc.flatten())))
+
+
+
+def GetCoherenceTime(Vis212):
+    
+    s = SSTDD(Vis212)/np.sqrt(Vis212.shape[1])
+    V = AvArr(Vis212,Vis212.shape[1],1)
+    vecT = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,25,30,35,40,50,60,80,100]; vecF = [V.shape[1]]; 
+    SNRV, DBAV, STDV, nV, BAV = ChangesAveraging(V,vecT,vecF)
+    DBAV = np.sqrt(BAV.flatten()**2 - 2.*s**2/(vecT))
+    
+    #coherence time from non-debiased amplitude
+    test = BAV-0.9*BAV[0]
+    tcoh = np.where(test[:-1] * test[1:] <= 0)
+    try:
+        indT = int(tcoh[0][0])
+        tcoh = float(vecT[indT]) + float(vecT[indT+1]-vecT[indT])*test[indT]/(-test[indT+1]+test[indT]) -1.
+        tcoh1 = tcoh[0]
+    except IndexError:
+        tcoh1 = np.nan
+    
+    #coherence time from debiased amplitude
+    test2 = DBAV-0.9*np.amax(DBAV)
+    tcoh2 = np.where((test2[:-1] * test2[1:] <= 0)& (test2[:-1] > 0))
+    try:
+        indT2 = int(tcoh2[0][0])
+        tcoh2 = float(vecT[indT2]) + float(vecT[indT2+1]-vecT[indT2])*test2[indT2]/(-test2[indT2+1]+test2[indT2]) -1.
+    except IndexError:
+        tcoh2 = np.nan
+        
+    return tcoh1, tcoh2
+
+
+def PlotCoherenceTimescale(V212):
+    s = SSTDD(V212)/np.sqrt(V212.shape[1])
+    V = AvArr(V212,V212.shape[1],1)
+    vecT = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,25,30,35,40,50,60,80,100]; vecF = [V.shape[1]]; 
+    SNRV, DBAV, STDV, nV, BAV = ChangesAveraging(V,vecT,vecF)
+    DBAV = np.sqrt(BAV.flatten()**2 - 2.*s**2/(vecT))
+    
+    #plot amplitudes vs averaging time
+    plt.figure(figsize=(14,6))
+    plt.errorbar(nV/V.shape[1], DBAV, xerr=0.0, yerr=1*s*np.sqrt(2)/np.sqrt(vecT),fmt='-bo',label='debiased')
+    plt.errorbar(nV/V.shape[1], BAV, xerr=0.0, yerr=1*s*np.sqrt(2)/np.sqrt(vecT),fmt='-ro',label='non-debiased')
+    plt.xscale('log'); plt.grid();
+    plt.ylabel('Debiased amp.',fontsize=15)
+    plt.xlabel('coherent intgr. time $t_{av}$ [s]',fontsize=15)
+    plt.axhline(y=0.9*np.amax(DBAV),color='b',linestyle='--', label='90 percent of max debiased')
+    plt.axhline(y=0.9*BAV[0],color='r',linestyle='--', label='90 percent of 1s biased')
+    plt.legend()
+    plt.show()
+    
+    #print info
+    test = BAV-0.9*BAV[0]
+    tcoh = np.where(test[:-1] * test[1:] <= 0)
+    try:
+        indT = int(tcoh[0][0])
+        tcoh = float(vecT[indT]) + float(vecT[indT+1]-vecT[indT])*test[indT]/(-test[indT+1]+test[indT]) -1.
+        tcoh1 = tcoh[0]
+    except IndexError:
+        tcoh1 = np.nan
+    
+    test2 = DBAV-0.9*np.amax(DBAV)
+    tcoh2 = np.where((test2[:-1] * test2[1:] <= 0)& (test2[:-1] > 0))
+    try:
+        indT2 = int(tcoh2[0][0])
+        tcoh2 = float(vecT[indT2]) + float(vecT[indT2+1]-vecT[indT2])*test2[indT2]/(-test2[indT2+1]+test2[indT2]) -1.
+    except IndexError:
+        tcoh2 = np.nan
+    print 'Charasteristic std for coherent averaging over 1s, all channels: ', s
+    print 'Coherence time from non-debiased amplitudes [s]: ', tcoh1
+    print 'Coherence time from debiased amplitudes [s]: ', tcoh2
+
+    #autocorrelation plots   
+    V = V212
+    c = scs.correlate2d(V,np.conj(V),mode='same')
+    fig, ax = plt.subplots(1,2,figsize=(10, 10))
+    cax0 = ax[0].imshow(np.abs(c), interpolation='nearest',aspect = 0.07*420/V212.shape[0])
+    ax[0].set_xlabel('frequency')
+    ax[0].set_ylabel('time')
+    ax[0].set_title('sqrt autocorrelation')
+    autocorT = np.sum(np.abs(c),1)
+    autocorTn = autocorT/np.amax(autocorT)
+    t = np.linspace(1, len(autocorT),len(autocorT)) - (len(autocorT)/2.)
+
+    ax[1].plot(t,np.sqrt(autocorTn),'-*')
+    ax[1].axis([-15,15,0.7,1.03])
+    ax[1].set_aspect(85)
+    ax[1].axhline(y=0.9,color='k')
+    ax[1].axvline(x=0.0,color='k')
+    ax[1].set_xlabel('time [s]')
+    ax[1].set_title('sqrt autocorrelation')
+    plt.show() 
+
+def CorrectDelayLin(V):
+    #correct delay
+    foo = AvArr(V,V.shape[1],1) #assume that axis 1 is frequency channels
+    unPh = np.unwrap((np.angle(foo.flatten())))
+    t = np.linspace(1,len(unPh),len(unPh))
+    a,b = np.polyfit(t,unPh,1)
+    Vc = V*np.exp(-1j*(a*t+b))[:,np.newaxis]
+    return Vc
+
+def get_list_file_paths(alist,path0='',conditions="(alist['baseline']!= 'Small off duty Czechoslovakian traffic warden')"):
+    #e.g., listP = get_list_file_paths(alist,path0, "(alist['baseline']=='AX')")
+    exec('cond='+conditions)
+    expt_no = list(alist.loc[cond,'expt_no'])
+    scan_id = list(alist.loc[cond,'scan_id'])
+    baseline = list(alist.loc[cond,'baseline'])
+    extent_no = list(alist.loc[cond,'extent_no'])
+    root_id = list(alist.loc[cond,'root_id'])  
+    path_list = [path0+'/'+str(expt_no[x])+'/'+str(scan_id[x])+'/'+baseline[x]+'.B.'+str(extent_no[x])+'.'+str(root_id[x]) for x in range(len(expt_no))]
+    return path_list
